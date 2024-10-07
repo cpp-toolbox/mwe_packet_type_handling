@@ -28,3 +28,9 @@
 [submodule "server/src/logger_component"]
 	path = server/src/logger_component
 	url = git@github.com:cpp-toolbox/logger_component.git
+[submodule "server/src/fixed_frequency_loop"]
+	path = server/src/fixed_frequency_loop
+	url = git@github.com:cpp-toolbox/fixed_frequency_loop.git
+[submodule "server/src/stopwatch"]
+	path = server/src/stopwatch
+	url = git@github.com:cpp-toolbox/stopwatch.git

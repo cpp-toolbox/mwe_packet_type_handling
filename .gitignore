@@ -1,0 +1,4 @@
+client/build
+client/CMakeUserPresets.json
+server/build
+server/CMakeUserPresets.json

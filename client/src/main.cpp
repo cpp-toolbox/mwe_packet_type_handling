@@ -1,7 +1,7 @@
 #include "client_networking/network.hpp"
 #include "fixed_frequency_loop/fixed_frequency_loop.hpp"
 #include "packet_handler/packet_handler.hpp"   
-#include "packet_types.hpp"     
+#include "packet_types/packet_types.hpp"     
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>

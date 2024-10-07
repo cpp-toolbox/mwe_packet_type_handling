@@ -34,3 +34,6 @@
 [submodule "server/src/stopwatch"]
 	path = server/src/stopwatch
 	url = git@github.com:cpp-toolbox/stopwatch.git
+[submodule "client/src/packet_handler"]
+	path = client/src/packet_handler
+	url = git@github.com:cpp-toolbox/packet_handler.git

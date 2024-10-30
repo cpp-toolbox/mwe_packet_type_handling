@@ -1,10 +1,10 @@
 #include "server_networking/network.hpp"
 #include "fixed_frequency_loop/fixed_frequency_loop.hpp"
-
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <memory>
+#include <vector>
 #include <functional>
 #include <array>
 
@@ -16,7 +16,7 @@ enum class PacketType : uint8_t {
 };
 
 struct PacketHeader {
-    PacketType type; 
+    PacketType type;
     uint32_t size_of_data_without_header;
 };
 
@@ -25,29 +25,35 @@ struct UniqueClientIDPacket {
     unsigned int client_id;
 };
 
-constexpr size_t MAX_CLIENTS = 5;
-using PositionArray = std::array<float, 3>;  // Fixed size for each position
-using PositionPacketArray = std::array<PositionArray, MAX_CLIENTS>;  // Array for multiple positions
+using PositionArray = std::array<float, 3>;
 
 struct GameUpdatePositionsPacket {
     PacketHeader header;
-    PositionPacketArray positions;  // Using std::array for fixed-size storage
+    std::vector<PositionArray> positions;
 };
 
-PositionPacketArray mock_positions = {{
-    {1.0f, 1.0f, 1.0f},
-    {1.0f, 0.0f, 0.0f},
-    {0.0f, 1.0f, 0.0f},
-    {0.0f, 0.0f, 1.0f},
-    {1.0f, 1.0f, 1.0f},
-}};
-
-GameUpdatePositionsPacket create_mock_game_update_positions_packet() {
+GameUpdatePositionsPacket create_mock_game_update_positions_packet_1() {
     GameUpdatePositionsPacket packet;
     packet.header.type = PacketType::GAME_UPDATE_POSITIONS;
-    packet.header.size_of_data_without_header = sizeof(PositionPacketArray);
-    packet.positions = mock_positions;  // Copy the positions directly
+    packet.positions = {
+        {1.0f, 1.0f, 1.0f},
+        {1.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f},
+        {1.0f, 1.0f, 1.0f},
+    };
+    packet.header.size_of_data_without_header = packet.positions.size() * sizeof(PositionArray);
+    return packet;
+}
 
+GameUpdatePositionsPacket create_mock_game_update_positions_packet_2() {
+    GameUpdatePositionsPacket packet;
+    packet.header.type = PacketType::GAME_UPDATE_POSITIONS;
+    packet.positions = {
+        {2.0f, 2.0f, 2.0f},
+        {2.0f, 0.0f, 0.0f},
+    };
+    packet.header.size_of_data_without_header = packet.positions.size() * sizeof(PositionArray);
     return packet;
 }
 
@@ -64,11 +70,10 @@ int main() {
 
     std::function<void(unsigned int)> on_client_connect = [&](unsigned int client_id) {
         UniqueClientIDPacket packet;
-        packet.header.type = PacketType::UNIQUE_CLIENT_ID; 
+        packet.header.type = PacketType::UNIQUE_CLIENT_ID;
         packet.header.size_of_data_without_header = sizeof(packet.client_id);
-        packet.client_id = client_id; 
+        packet.client_id = client_id;
 
-        ENetPacket *enet_packet = enet_packet_create(&packet, sizeof(packet), ENET_PACKET_FLAG_RELIABLE);
         server.reliable_send(client_id, &packet, sizeof(UniqueClientIDPacket));
     };
 
@@ -81,15 +86,20 @@ int main() {
         return false;
     };
 
-    // Updated tick function to send the GameUpdatePositionsPacket
-    auto tick = [&server](double dt) {
+    bool toggle = false;
+
+    auto tick = [&server, &toggle](double dt) {
         server.get_network_events_since_last_tick();
 
-        // Create and send the mock GameUpdatePositionsPacket
-        GameUpdatePositionsPacket packet = create_mock_game_update_positions_packet();
+        GameUpdatePositionsPacket packet = toggle ? create_mock_game_update_positions_packet_2() : create_mock_game_update_positions_packet_1();
+        toggle = !toggle;
 
-        // Broadcast the packet to all connected clients
-        server.reliable_broadcast(&packet, sizeof(PacketHeader) + packet.header.size_of_data_without_header);
+        size_t packet_size = sizeof(PacketHeader) + packet.positions.size() * sizeof(PositionArray);
+        std::vector<char> buffer(packet_size);
+        std::memcpy(buffer.data(), &packet.header, sizeof(PacketHeader));
+        std::memcpy(buffer.data() + sizeof(PacketHeader), packet.positions.data(), packet.positions.size() * sizeof(PositionArray));
+
+        server.reliable_broadcast(buffer.data(), buffer.size());
     };
 
     game.start(2, tick, termination);

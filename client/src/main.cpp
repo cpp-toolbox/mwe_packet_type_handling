@@ -1,12 +1,11 @@
 #include "client_networking/network.hpp"
 #include "fixed_frequency_loop/fixed_frequency_loop.hpp"
-#include "packet_handler/packet_handler.hpp"   
-#include "packet_types/packet_types.hpp"     
+#include "packet_handler/packet_handler.hpp"
+#include "packet_types/packet_types.hpp"
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <memory>
-#include <cstring>
 #include <iostream>
 #include <string>
 #include <array>
@@ -17,11 +16,10 @@
 constexpr size_t MAX_CLIENTS = 5;
 
 using PositionArray = std::array<float, 3>;
-using PositionPacketArray = std::array<PositionArray, MAX_CLIENTS>;
 
 struct GameUpdatePositionsPacket {
     PacketHeader header;
-    PositionPacketArray positions;
+    std::vector<PositionArray> positions;
 };
 
 struct UniqueClientIDPacket {
@@ -31,10 +29,7 @@ struct UniqueClientIDPacket {
 
 void handle_game_update_positions_packet(const GameUpdatePositionsPacket& packet) {
     for (const auto& pos : packet.positions) {
-        std::cout << "Position: (" 
-                  << pos[0] << ", "
-                  << pos[1] << ", "
-                  << pos[2] << ")\n";
+        std::cout << "Position: (" << pos[0] << ", " << pos[1] << ", " << pos[2] << ")\n";
     }
 }
 
@@ -51,8 +46,15 @@ std::unordered_map<PacketType, PacketHandler::HandlerFunction> initialize_packet
     };
 
     handlers[PacketType::GAME_UPDATE_POSITIONS] = [](const void* data) {
-        const GameUpdatePositionsPacket* packet = reinterpret_cast<const GameUpdatePositionsPacket*>(data);
-        handle_game_update_positions_packet(*packet);
+        const PacketHeader* header = reinterpret_cast<const PacketHeader*>(data);
+        size_t num_positions = header->size_of_data_without_header / sizeof(PositionArray);
+
+        GameUpdatePositionsPacket packet;
+        packet.header = *header;
+        packet.positions.resize(num_positions);
+        std::memcpy(packet.positions.data(), reinterpret_cast<const char*>(data) + sizeof(PacketHeader), num_positions * sizeof(PositionArray));
+
+        handle_game_update_positions_packet(packet);
     };
 
     return handlers;
@@ -83,11 +85,11 @@ int main() {
         for (const auto& packet : packets_since_last_tick) {
             std::cout << "Received packet of size: " << packet.size << "\n";
         }
-        packet_handler.handle_packets(packets_since_last_tick); 
+        packet_handler.handle_packets(packets_since_last_tick);
     };
 
     auto termination = []() {
-        return false; 
+        return false;
     };
 
     game.start(2, tick, termination);

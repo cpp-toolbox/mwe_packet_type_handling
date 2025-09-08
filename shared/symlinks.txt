@@ -1,0 +1,5 @@
+packet_types -> ../client/src/networking/packet_types
+packet_types -> ../server/src/networking/packet_types
+
+packets -> ../client/src/networking/packets
+packets -> ../server/src/networking/packets

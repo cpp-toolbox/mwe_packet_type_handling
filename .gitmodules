@@ -22,12 +22,6 @@
 [submodule "client/src/stopwatch"]
 	path = client/src/stopwatch
 	url = git@github.com:cpp-toolbox/stopwatch.git
-[submodule "client/src/logger_component"]
-	path = client/src/logger_component
-	url = git@github.com:cpp-toolbox/logger_component.git
-[submodule "server/src/logger_component"]
-	path = server/src/logger_component
-	url = git@github.com:cpp-toolbox/logger_component.git
 [submodule "server/src/fixed_frequency_loop"]
 	path = server/src/fixed_frequency_loop
 	url = git@github.com:cpp-toolbox/fixed_frequency_loop.git
@@ -35,5 +29,26 @@
 	path = server/src/stopwatch
 	url = git@github.com:cpp-toolbox/stopwatch.git
 [submodule "client/src/packet_handler"]
-	path = client/src/packet_handler
+	path = client/src/networking/packet_handler
+	url = git@github.com:cpp-toolbox/packet_handler.git
+[submodule "server/src/networking/packet_data"]
+	path = server/src/networking/packet_data
+	url = git@github.com:cpp-toolbox/packet_data.git
+[submodule "server/src/utility/logger"]
+	path = server/src/utility/logger
+	url = git@github.com:cpp-toolbox/logger.git
+[submodule "client/src/utility/logger"]
+	path = client/src/utility/logger
+	url = git@github.com:cpp-toolbox/logger.git
+[submodule "client/src/utility/limited_vector"]
+	path = client/src/utility/limited_vector
+	url = git@github.com:cpp-toolbox/limited_vector.git
+[submodule "client/src/networking/packet_data"]
+	path = client/src/networking/packet_data
+	url = git@github.com:cpp-toolbox/packet_data.git
+[submodule "shared/fs_utils"]
+	path = shared/fs_utils
+	url = git@github.com:py-garden/fs_utils.git
+[submodule "server/src/networking/packet_handler"]
+	path = server/src/networking/packet_handler
 	url = git@github.com:cpp-toolbox/packet_handler.git

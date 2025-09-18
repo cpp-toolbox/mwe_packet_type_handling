@@ -1,14 +1,15 @@
+#include "meta_program/meta_program.hpp"
 #include "server_networking/network.hpp"
 #include "networking/packets/packets.hpp"
 #include "networking/packet_handler/packet_handler.hpp"
 
 #include "fixed_frequency_loop/fixed_frequency_loop.hpp"
 #include "utility/logger/logger.hpp"
+#include "utility/meta_utils/meta_utils.hpp"
+#include "utility/text_utils/text_utils.hpp"
+
 #include <iostream>
 #include <ostream>
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
 #include <memory>
 #include <vector>
 #include <functional>
@@ -21,7 +22,7 @@ GameUpdatePositionsPacket create_mock_game_update_positions_packet_1(int id) {
     packet.positions = {
         {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f},
     };
-    packet.header.size_of_data_without_header = packet.positions.size() * sizeof(PositionArray);
+    packet.header.size_of_data_without_header = sizeof(unsigned int) + packet.positions.size() * sizeof(PositionArray);
     return packet;
 }
 
@@ -33,33 +34,19 @@ GameUpdatePositionsPacket create_mock_game_update_positions_packet_2(int id) {
         {2.0f, 2.0f, 2.0f},
         {2.0f, 0.0f, 0.0f},
     };
-    packet.header.size_of_data_without_header = packet.positions.size() * sizeof(PositionArray);
+    packet.header.size_of_data_without_header = sizeof(unsigned int) + packet.positions.size() * sizeof(PositionArray);
     return packet;
 }
 
-void print_mkup(const MouseKeyboardUpdatePacket &packet) {
-    global_logger.info("just received packet with id: {}", packet.id);
-    global_logger.info("MouseKeyboardUpdatePacket {{ fire_pressed: {}, forward_pressed {} }}", packet.mku.fire_pressed,
-                       packet.mku.forward_pressed);
-}
-
-std::vector<char> serialize(const GameUpdatePositionsPacket &packet) {
-    std::vector<char> buffer;
-    buffer.reserve(sizeof(PacketHeader) + sizeof(int) + packet.positions.size() * sizeof(PositionArray));
-
-    auto append = [&](auto *data, size_t size) {
-        const char *raw = reinterpret_cast<const char *>(data);
-        buffer.insert(buffer.end(), raw, raw + size);
-    };
-
-    append(&packet.header, sizeof(PacketHeader));
-    append(&packet.id, sizeof(packet.id)); // use id instead of num_broadcasts_made?
-    append(packet.positions.data(), packet.positions.size() * sizeof(PositionArray));
-
-    return buffer;
-}
-
 int main() {
+
+    meta_utils::CustomTypeExtractionSettings settings("src/networking/packet_types/packet_types.hpp");
+    meta_utils::CustomTypeExtractionSettings settings1("src/networking/packet_data/packet_data.hpp");
+    meta_utils::CustomTypeExtractionSettings settings2("src/networking/packets/packets.hpp");
+    meta_utils::register_custom_types_into_meta_types({settings, settings1, settings2});
+    meta_utils::generate_string_invokers_program_wide({}, meta_utils::meta_types.get_concrete_types());
+
+    meta_program::MetaProgram mp(meta_utils::meta_types.get_concrete_types());
 
     // global_logger.remove_all_sinks();
     global_logger.add_file_sink("logs.txt", true);
@@ -71,11 +58,17 @@ int main() {
     std::function<void(unsigned int)> on_client_connect = [&](unsigned int client_id) {
         UniqueClientIDPacket packet;
         packet.header.type = PacketType::UNIQUE_CLIENT_ID;
-        packet.header.size_of_data_without_header = sizeof(packet.client_id);
+        packet.header.size_of_data_without_header = sizeof(unsigned int) + sizeof(packet.client_id);
         packet.id = num_broadcasts_made;
         packet.client_id = client_id;
 
-        server.reliable_send(client_id, &packet, sizeof(UniqueClientIDPacket));
+        auto buffer = mp.serialize_UniqueClientIDPacket(packet);
+
+        server.reliable_send(client_id, buffer.data(), buffer.size());
+
+        global_logger.info("just sent packet: {} with size in bytes: {}", mp.UniqueClientIDPacket_to_string(packet),
+                           buffer.size());
+        // server.reliable_send(client_id, &packet, sizeof(UniqueClientIDPacket));
     };
 
     server.set_on_connect_callback(on_client_connect);
@@ -83,9 +76,13 @@ int main() {
 
     PacketHandler packet_handler;
     // std::function<void(const void *)>
-    packet_handler.register_handler(PacketType::KEYBOARD_MOUSE_UPDATE, [](const void *raw_packet) {
-        const MouseKeyboardUpdatePacket *kmup = reinterpret_cast<const MouseKeyboardUpdatePacket *>(raw_packet);
-        print_mkup(*kmup);
+    packet_handler.register_handler(PacketType::KEYBOARD_MOUSE_UPDATE, [&](std::vector<uint8_t> buffer) {
+        MouseKeyboardUpdatePacket kmup = mp.deserialize_MouseKeyboardUpdatePacket(buffer);
+        global_logger.info("just received packet with id: {}", kmup.id);
+        global_logger.info(mp.MouseKeyboardUpdatePacket_to_string(kmup));
+        global_logger.info(
+            text_utils::format_nested_brace_string_recursive(mp.MouseKeyboardUpdatePacket_to_string(kmup)));
+        // print_mkup(kmup);
     });
 
     FixedFrequencyLoop game;
@@ -94,7 +91,7 @@ int main() {
 
     bool toggle = false;
 
-    auto tick = [&server, &toggle, &packet_handler, &num_broadcasts_made](double dt) {
+    auto tick = [&server, &toggle, &packet_handler, &num_broadcasts_made, &mp](double dt) {
         LogSection _(global_logger, "tick");
         auto packets = server.get_network_events_since_last_tick();
         packet_handler.handle_packets(packets);
@@ -103,10 +100,10 @@ int main() {
                                                   : create_mock_game_update_positions_packet_1(num_broadcasts_made);
         toggle = !toggle;
 
-        auto buffer = serialize(packet);
+        auto buffer = mp.serialize_GameUpdatePositionsPacket(packet);
 
         server.reliable_broadcast(buffer.data(), buffer.size());
-        global_logger.info("just sent packet with id: {}", packet.id);
+        global_logger.info("just sent packet with id: {} with size in bytes: {}", packet.id, buffer.size());
         ++num_broadcasts_made;
     };
 

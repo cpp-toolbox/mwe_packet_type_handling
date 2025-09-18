@@ -1,10 +1,12 @@
 #include "client_networking/network.hpp"
 #include "fixed_frequency_loop/fixed_frequency_loop.hpp"
 
+#include "meta_program/meta_program.hpp"
 #include "networking/packet_handler/packet_handler.hpp"
 #include "networking/packet_types/packet_types.hpp"
 #include "networking/packets/packets.hpp"
 #include "utility/logger/logger.hpp"
+#include "utility/meta_utils/meta_utils.hpp"
 
 #include <memory>
 #include <iostream>
@@ -16,91 +18,15 @@
 
 constexpr size_t MAX_CLIENTS = 5;
 
-void handle_game_update_positions_packet(const GameUpdatePositionsPacket &packet) {
-    global_logger.info("just received packet with id: {}", packet.id);
-    for (const auto &pos : packet.positions) {
-        global_logger.info("Position: ({}, {}, {})", pos[0], pos[1], pos[2]);
-    }
-}
-
-void handle_unique_client_id_packet(const UniqueClientIDPacket &packet) {
-    global_logger.info("just received packet with id: {}", packet.id);
-    global_logger.info("Client ID: ", packet.client_id);
-}
-
-std::unordered_map<PacketType, PacketHandler::HandlerFunction> initialize_packet_handlers() {
-    std::unordered_map<PacketType, PacketHandler::HandlerFunction> handlers;
-
-    // NOTE: after client connects to server, the server sends you back a unique id.
-    handlers[PacketType::UNIQUE_CLIENT_ID] = [](const void *data) {
-        const UniqueClientIDPacket *packet = reinterpret_cast<const UniqueClientIDPacket *>(data);
-        handle_unique_client_id_packet(*packet);
-    };
-
-    handlers[PacketType::GAME_UPDATE_POSITIONS] = [](const void *data) {
-        const char *ptr = reinterpret_cast<const char *>(data);
-
-        GameUpdatePositionsPacket packet;
-
-        // 1. Header
-        std::memcpy(&packet.header, ptr, sizeof(PacketHeader));
-        ptr += sizeof(PacketHeader);
-
-        // 2. ID
-        std::memcpy(&packet.id, ptr, sizeof(int));
-        ptr += sizeof(int);
-
-        // 3. Positions
-        size_t num_positions = packet.header.size_of_data_without_header - sizeof(int);
-        num_positions /= sizeof(PositionArray);
-
-        packet.positions.resize(num_positions);
-        if (num_positions > 0) {
-            std::memcpy(packet.positions.data(), ptr, num_positions * sizeof(PositionArray));
-        }
-
-        handle_game_update_positions_packet(packet);
-    };
-
-    return handlers;
-}
-
-GameUpdatePositionsPacket deserialize(const char *data, size_t size) {
-    GameUpdatePositionsPacket packet;
-
-    const char *ptr = data;
-
-    // 1. Header
-    if (size < sizeof(PacketHeader)) {
-        throw std::runtime_error("deserialize: buffer too small for header");
-    }
-    std::memcpy(&packet.header, ptr, sizeof(PacketHeader));
-    ptr += sizeof(PacketHeader);
-    size -= sizeof(PacketHeader);
-
-    // 2. ID
-    if (size < sizeof(int)) {
-        throw std::runtime_error("deserialize: buffer too small for id");
-    }
-    std::memcpy(&packet.id, ptr, sizeof(int));
-    ptr += sizeof(int);
-    size -= sizeof(int);
-
-    // 3. Positions
-    size_t num_positions = size / sizeof(PositionArray);
-    if (size % sizeof(PositionArray) != 0) {
-        throw std::runtime_error("deserialize: buffer size not aligned with PositionArray");
-    }
-
-    packet.positions.resize(num_positions);
-    if (num_positions > 0) {
-        std::memcpy(packet.positions.data(), ptr, num_positions * sizeof(PositionArray));
-    }
-
-    return packet;
-}
-
 int main() {
+
+    meta_utils::CustomTypeExtractionSettings settings("src/networking/packet_types/packet_types.hpp");
+    meta_utils::CustomTypeExtractionSettings settings1("src/networking/packet_data/packet_data.hpp");
+    meta_utils::CustomTypeExtractionSettings settings2("src/networking/packets/packets.hpp");
+    meta_utils::register_custom_types_into_meta_types({settings, settings1, settings2});
+    meta_utils::generate_string_invokers_program_wide({}, meta_utils::meta_types.get_concrete_types());
+
+    meta_program::MetaProgram mp(meta_utils::meta_types.get_concrete_types());
 
     std::string ip_address = "localhost";
     Network network(ip_address, 7777);
@@ -109,14 +35,31 @@ int main() {
     // global_logger.remove_all_sinks();
     global_logger.add_file_sink("logs.txt", true);
 
-    auto handlers = initialize_packet_handlers();
-    PacketHandler packet_handler(handlers);
+    PacketHandler packet_handler;
+
+    PacketHandler::HandlerFunction f = [&](std::vector<uint8_t> buffer) {
+        UniqueClientIDPacket packet = mp.deserialize_UniqueClientIDPacket(buffer);
+        global_logger.info("just received packet with id: {}", packet.id);
+        global_logger.info(mp.UniqueClientIDPacket_to_string(packet));
+    };
+
+    packet_handler.register_handler(PacketType::UNIQUE_CLIENT_ID, f);
+
+    PacketHandler::HandlerFunction g = [&](std::vector<uint8_t> buffer) {
+        GameUpdatePositionsPacket packet = mp.deserialize_GameUpdatePositionsPacket(buffer);
+        global_logger.info("just received packet with id: {}", packet.id);
+        global_logger.info(mp.GameUpdatePositionsPacket_to_string(packet));
+        global_logger.info(
+            text_utils::format_nested_brace_string_recursive(mp.GameUpdatePositionsPacket_to_string(packet)));
+    };
+
+    packet_handler.register_handler(PacketType::GAME_UPDATE_POSITIONS, g);
 
     network.initialize_network();
     network.attempt_to_connect_to_server();
 
     int num_packets_sent = 0;
-    auto tick = [&network, &packet_handler, &num_packets_sent](double dt) {
+    auto tick = [&network, &packet_handler, &num_packets_sent, &mp](double dt) {
         LogSection _(global_logger, "tick");
 
         std::vector<PacketWithSize> packets_since_last_tick = network.get_network_events_received_since_last_tick();
@@ -128,11 +71,16 @@ int main() {
         MouseKeyboardUpdate kmu{num_packets_sent % 2 == 0, num_packets_sent % 3 == 0};
         MouseKeyboardUpdatePacket packet;
         packet.header.type = PacketType::KEYBOARD_MOUSE_UPDATE;
-        packet.header.size_of_data_without_header = sizeof(MouseKeyboardUpdate);
+        packet.header.size_of_data_without_header = sizeof(MouseKeyboardUpdate) + sizeof(unsigned int);
         packet.id = num_packets_sent;
         packet.mku = kmu;
-        network.send_packet(&packet, sizeof(MouseKeyboardUpdatePacket));
-        global_logger.info("just sent packet with id: {}", packet.id);
+
+        auto buffer = mp.serialize_MouseKeyboardUpdatePacket(packet);
+
+        // network.send_packet(&packet, sizeof(MouseKeyboardUpdatePacket));
+        network.send_packet(buffer.data(), buffer.size());
+        global_logger.info("just sent packet with id: {} with size in bytes: {} ", packet.id, buffer.size());
+        global_logger.info(mp.MouseKeyboardUpdatePacket_to_string(packet));
         num_packets_sent += 1;
     };
 

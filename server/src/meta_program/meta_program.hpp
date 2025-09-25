@@ -1,16 +1,11 @@
 #ifndef META_PROGRAM_HPP
 #define META_PROGRAM_HPP
 
-#include "../networking/packet_types/packet_types.hpp"
-#include "../networking/packet_data/packet_data.hpp"
-#include "../networking/packet_data/packet_data.hpp"
-#include "../networking/packets/packets.hpp"
-#include "../networking/packets/packets.hpp"
-#include "../networking/packets/packets.hpp"
-#include "../networking/packets/packets.hpp"
-#include "../networking/packets/packets.hpp"
+#include "../utility/text_utils/meta/text_utils.hpp"
+#include "../utility/fs_utils/meta/fs_utils.hpp"
 #include <optional>
 #include "../utility/meta_utils/meta_utils.hpp"
+#include "../utility/user_input/user_input.hpp"
 
 namespace meta_program {
 
@@ -22,6 +17,8 @@ public:
 
 public:
     std::vector<meta_utils::MetaType>  concrete_types;
+    meta_text_utils::MetaTextUtils meta_text_utils{concrete_types};
+    meta_fs_utils::MetaFsUtils meta_fs_utils{concrete_types};
     std::string char_to_string(char &v) {
         return std::to_string(v);
 
@@ -227,7 +224,7 @@ public:
 
     }
     std::string string_to_std__string(std::string &s) {
-        return s;
+        if (s.size() >= 2 && s.front() == '"' && s.back() == '"')     return s.substr(1, s.size() - 2);   return s;
 
     }
     std::vector<uint8_t> serialize_std__string(std::string &v) {
@@ -242,12 +239,52 @@ public:
         if (buf.size() < sizeof(size_t)) return std::string();   size_t len;   std::memcpy(&len, buf.data(), sizeof(size_t));   if (buf.size() < sizeof(size_t) + len) return std::string();   return std::string(reinterpret_cast<const char*>(buf.data() + sizeof(size_t)), len);
 
     }
+    std::string std__filesystem__path_to_string(std::filesystem::path &p) {
+        return p.string();
+
+    }
+    std::filesystem::path string_to_std__filesystem__path(std::string &s) {
+        if (s.size() >= 2 && s.front() == '"' && s.back() == '"')     return std::filesystem::path(s.substr(1, s.size() - 2));   return std::filesystem::path(s);
+
+    }
+    std::vector<uint8_t> serialize_std__filesystem__path(std::filesystem::path &p) {
+        std::string s = p.string();   std::vector<uint8_t> buf;   size_t len = s.size();   buf.resize(sizeof(size_t) + len);   std::memcpy(buf.data(), &len, sizeof(size_t));   std::memcpy(buf.data() + sizeof(size_t), s.data(), len);   return buf;
+
+    }
+    size_t size_when_serialized_std__filesystem__path(std::filesystem::path &p) {
+        std::string s = p.string();   return sizeof(size_t) + s.size();
+
+    }
+    std::filesystem::path deserialize_std__filesystem__path(std::vector<uint8_t> &buf) {
+        if (buf.size() < sizeof(size_t)) return std::filesystem::path();   size_t len;   std::memcpy(&len, buf.data(), sizeof(size_t));   if (buf.size() < sizeof(size_t) + len) return std::filesystem::path();   return std::filesystem::path(std::string(reinterpret_cast<const char*>(buf.data() + sizeof(size_t)), len));
+
+    }
+    std::string std__regex_to_string(std::regex &r) {
+        return r.pattern();
+
+    }
+    std::regex string_to_std__regex(std::string &s) {
+        if (s.size() >= 2 && s.front() == '"' && s.back() == '"')     return std::regex(s.substr(1, s.size() - 2));   return std::regex(s);
+
+    }
+    std::vector<uint8_t> serialize_std__regex(std::regex &r) {
+        std::string pattern = r.pattern();   std::vector<uint8_t> buf;   size_t len = pattern.size();   buf.resize(sizeof(size_t) + len);   std::memcpy(buf.data(), &len, sizeof(size_t));   std::memcpy(buf.data() + sizeof(size_t), pattern.data(), len);   return buf;
+
+    }
+    size_t size_when_serialized_std__regex(std::regex &r) {
+        std::string pattern = r.pattern();   return sizeof(size_t) + pattern.size();
+
+    }
+    std::regex deserialize_std__regex(std::vector<uint8_t> &buf) {
+        if (buf.size() < sizeof(size_t)) return std::regex();   size_t len;   std::memcpy(&len, buf.data(), sizeof(size_t));   if (buf.size() < sizeof(size_t) + len) return std::regex();   return std::regex(std::string(reinterpret_cast<const char*>(buf.data() + sizeof(size_t)), len));
+
+    }
     std::string bool_to_string(bool &v) {
-        return std::to_string(v);
+        return v ? "true" : "false";
 
     }
     bool string_to_bool(std::string &s) {
-        return s == "true" || s == "1";
+        return s == "true";
 
     }
     std::vector<uint8_t> serialize_bool(bool &v) {
@@ -279,1282 +316,173 @@ public:
     meta_utils::MetaType deserialize_meta_utils__MetaType() {
 
     }
-    std::string PacketType_to_string(PacketType value) {
-        switch(value) {
-                case PacketType::UNIQUE_CLIENT_ID: return "PacketType::UNIQUE_CLIENT_ID";
-                case PacketType::GAME_UPDATE_POSITIONS: return "PacketType::GAME_UPDATE_POSITIONS";
-                case PacketType::GAME_UPDATE_ONE_TIME_EVENTS: return "PacketType::GAME_UPDATE_ONE_TIME_EVENTS";
-                case PacketType::KEYBOARD_MOUSE_UPDATE: return "PacketType::KEYBOARD_MOUSE_UPDATE";
-                default: return "<unknown PacketType>";
-            }
-
-    }
-    PacketType string_to_PacketType(std::string &s) {
-        if (s == "PacketType::UNIQUE_CLIENT_ID") return PacketType::UNIQUE_CLIENT_ID;
-            if (s == "PacketType::GAME_UPDATE_POSITIONS") return PacketType::GAME_UPDATE_POSITIONS;
-            if (s == "PacketType::GAME_UPDATE_ONE_TIME_EVENTS") return PacketType::GAME_UPDATE_ONE_TIME_EVENTS;
-            if (s == "PacketType::KEYBOARD_MOUSE_UPDATE") return PacketType::KEYBOARD_MOUSE_UPDATE;
-            return static_cast<PacketType>(0); // default fallback
-
-    }
-    std::vector<uint8_t> serialize_PacketType(PacketType value) {
-        std::vector<uint8_t> buffer(sizeof(uint8_t));
-            uint8_t raw = static_cast<uint8_t>(value);
-            std::memcpy(buffer.data(), &raw, sizeof(uint8_t));
-            return buffer;
-
-    }
-    size_t size_when_serialized_PacketType(PacketType &obj) {
-        return sizeof(uint8_t);
-
-    }
-    PacketType deserialize_PacketType(std::vector<uint8_t> &buffer) {
-        if (buffer.size() < sizeof(uint8_t)) return static_cast<PacketType>(0);
-            uint8_t raw = 0;
-            std::memcpy(&raw, buffer.data(), sizeof(uint8_t));
-            return static_cast<PacketType>(raw);
-
-    }
-    std::string PacketHeader_to_string(PacketHeader obj) {
-        std::ostringstream oss;
-            oss << "{";
-            { auto conv = [=](PacketType value) -> std::string {
-            switch(value) {
-                case PacketType::UNIQUE_CLIENT_ID: return "PacketType::UNIQUE_CLIENT_ID";
-                case PacketType::GAME_UPDATE_POSITIONS: return "PacketType::GAME_UPDATE_POSITIONS";
-                case PacketType::GAME_UPDATE_ONE_TIME_EVENTS: return "PacketType::GAME_UPDATE_ONE_TIME_EVENTS";
-                case PacketType::KEYBOARD_MOUSE_UPDATE: return "PacketType::KEYBOARD_MOUSE_UPDATE";
-                default: return "<unknown PacketType>";
-            }
-        };
-              oss << "type=" << conv(obj.type); }
-            oss << ", ";
-            { auto conv = [](const uint32_t &v) { return std::to_string(v); };
-              oss << "size_of_data_without_header=" << conv(obj.size_of_data_without_header); }
-            oss << "}";
-            return oss.str();
-
-    }
-    PacketHeader string_to_PacketHeader(std::string &s) {
-        PacketHeader obj;
-            std::string trimmed = s.substr(1, s.size() - 2); // remove {}
-            std::istringstream iss(trimmed);
-            std::string token;
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [=](const std::string &s) -> PacketType {
-            if (s == "PacketType::UNIQUE_CLIENT_ID") return PacketType::UNIQUE_CLIENT_ID;
-            if (s == "PacketType::GAME_UPDATE_POSITIONS") return PacketType::GAME_UPDATE_POSITIONS;
-            if (s == "PacketType::GAME_UPDATE_ONE_TIME_EVENTS") return PacketType::GAME_UPDATE_ONE_TIME_EVENTS;
-            if (s == "PacketType::KEYBOARD_MOUSE_UPDATE") return PacketType::KEYBOARD_MOUSE_UPDATE;
-            return static_cast<PacketType>(0); // default fallback
-        };
-                    obj.type = conv(value_str);
-                }
-            }
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [](const std::string &s) { return static_cast<uint32_t>(std::stoul(s)); };
-                    obj.size_of_data_without_header = conv(value_str);
-                }
-            }
-            return obj;
-
-    }
-    std::vector<uint8_t> serialize_PacketHeader(PacketHeader obj) {
-        std::vector<uint8_t> buffer;
-            { auto ser = [=](PacketType value) -> std::vector<uint8_t> {
-            std::vector<uint8_t> buffer(sizeof(uint8_t));
-            uint8_t raw = static_cast<uint8_t>(value);
-            std::memcpy(buffer.data(), &raw, sizeof(uint8_t));
-            return buffer;
-        };
-              auto bytes = ser(obj.type);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            { auto ser = [](const uint32_t &v) {   std::vector<uint8_t> buf(sizeof(uint32_t));   std::memcpy(buf.data(), &v, sizeof(uint32_t));   return buf; };
-              auto bytes = ser(obj.size_of_data_without_header);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            return buffer;
-
-    }
-    size_t size_when_serialized_PacketHeader(PacketHeader obj) {
-        size_t total = 0;
-            { auto size_fn = [=](const PacketType &obj) -> size_t {
-            return sizeof(uint8_t);
-        };
-              total += size_fn(obj.type); }
-            { auto size_fn = [](const uint32_t &v) { return sizeof(uint32_t); };
-              total += size_fn(obj.size_of_data_without_header); }
-            return total;
-
-    }
-    PacketHeader deserialize_PacketHeader(std::vector<uint8_t> &buffer) {
-        PacketHeader obj;
-            size_t offset = 0;
-            { auto deser = [=](const std::vector<uint8_t> &buffer) -> PacketType {
-            if (buffer.size() < sizeof(uint8_t)) return static_cast<PacketType>(0);
-            uint8_t raw = 0;
-            std::memcpy(&raw, buffer.data(), sizeof(uint8_t));
-            return static_cast<PacketType>(raw);
-        };
-              auto size_fn = [=](const PacketType &obj) -> size_t {
-            return sizeof(uint8_t);
-        };
-              size_t len = size_fn(obj.type);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.type = deser(slice);
-              offset += len;
-            }
-            { auto deser = [](const std::vector<uint8_t> &buf) {   uint32_t v;   std::memcpy(&v, buf.data(), sizeof(uint32_t));   return v; };
-              auto size_fn = [](const uint32_t &v) { return sizeof(uint32_t); };
-              size_t len = size_fn(obj.size_of_data_without_header);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.size_of_data_without_header = deser(slice);
-              offset += len;
-            }
-            return obj;
-
-    }
-    std::string PacketWithSize_to_string(PacketWithSize obj) {
-        std::ostringstream oss;
-            oss << "{";
-            { auto conv = [=](const std::vector<char>& vec) -> std::string {
-            std::ostringstream oss;
-            oss << "{";
-            auto conversion = [](const char &v) { return std::to_string(v); };
+    std::optional<std::filesystem::path> invoker_that_returns_std_filesystem_path(std::string &invocation) {
+        std::optional<std::filesystem::path> val;
+        val = meta_fs_utils.invoker_that_returns_std_filesystem_path(invocation);
+        if (val)
+            return val;
         
-            for (size_t i = 0; i < vec.size(); ++i) {
-                oss << conversion(vec[i]);
-                if (i + 1 < vec.size())
-                    oss << ", ";
-            }
+        return std::nullopt;
+
+    }
+    std::optional<std::vector<std::filesystem::path>> invoker_that_returns_std_vector_std_filesystem_path_(std::string &invocation) {
+        std::optional<std::vector<std::filesystem::path>> val;
+        val = meta_fs_utils.invoker_that_returns_std_vector_std_filesystem_path_(invocation);
+        if (val)
+            return val;
         
-            oss << "}";
-            return oss.str();
-        };
-              oss << "data=" << conv(obj.data); }
-            oss << ", ";
-            { auto conv = [](const size_t &v) { return std::to_string(v); };
-              oss << "size=" << conv(obj.size); }
-            oss << "}";
-            return oss.str();
+        return std::nullopt;
 
     }
-    PacketWithSize string_to_PacketWithSize(std::string &s) {
-        PacketWithSize obj;
-            std::string trimmed = s.substr(1, s.size() - 2); // remove {}
-            std::istringstream iss(trimmed);
-            std::string token;
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [=](const std::string &input) -> std::vector<char> {
-            std::string trimmed = input;
-            if (!trimmed.empty() && trimmed.front() == '{' && trimmed.back() == '}') {
-                trimmed = trimmed.substr(1, trimmed.size() - 2);
-            }
+    std::optional<std::string> invoker_that_returns_std_string(std::string &invocation) {
+        std::optional<std::string> val;
+        val = meta_text_utils.invoker_that_returns_std_string(invocation);
+        if (val)
+            return val;
         
-            std::vector<char> result;
-            std::regex element_re(R"('(?:[^'\\]|\\.)')");
-            auto begin = std::sregex_iterator(trimmed.begin(), trimmed.end(), element_re);
-            auto end = std::sregex_iterator();
+        val = meta_fs_utils.invoker_that_returns_std_string(invocation);
+        if (val)
+            return val;
         
-            for (auto it = begin; it != end; ++it) {
-                try {
-                    auto conversion = [](const std::string &s) { return static_cast<char>(s.empty() ? 0 : s[0]); };
-                    result.push_back(conversion(it->str()));
-                } catch (...) {
-                    // Ignore malformed elements
-                }
-            }
-            return result;
-        };
-                    obj.data = conv(value_str);
-                }
-            }
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [](const std::string &s) { return static_cast<size_t>(std::stoull(s)); };
-                    obj.size = conv(value_str);
-                }
-            }
-            return obj;
+        return std::nullopt;
 
     }
-    std::vector<uint8_t> serialize_PacketWithSize(PacketWithSize obj) {
-        std::vector<uint8_t> buffer;
-            { auto ser = [=](const std::vector<char>& vec) -> std::vector<uint8_t> {
-            std::vector<uint8_t> buffer;
-            size_t count = vec.size();
-            buffer.resize(sizeof(size_t));
-            std::memcpy(buffer.data(), &count, sizeof(size_t));
+    std::optional<bool> invoker_that_returns_bool(std::string &invocation) {
+        std::optional<bool> val;
+        val = meta_text_utils.invoker_that_returns_bool(invocation);
+        if (val)
+            return val;
         
-            auto element_serializer = [](const char &v) {   std::vector<uint8_t> buf(sizeof(char));   std::memcpy(buf.data(), &v, sizeof(char));   return buf; };
-            if (!vec.empty()) {
-                size_t elem_size = sizeof(char);
-                buffer.resize(buffer.size() + vec.size() * elem_size);
-                std::memcpy(buffer.data() + sizeof(size_t), vec.data(), vec.size() * elem_size);
-            }
-            return buffer;
-        };
-              auto bytes = ser(obj.data);
-              size_t len = bytes.size();
-              buffer.resize(buffer.size() + sizeof(size_t));
-              std::memcpy(buffer.data() + buffer.size() - sizeof(size_t), &len, sizeof(size_t));
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            { auto ser = [](const size_t &v) {   std::vector<uint8_t> buf(sizeof(size_t));   std::memcpy(buf.data(), &v, sizeof(size_t));   return buf; };
-              auto bytes = ser(obj.size);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            return buffer;
-
-    }
-    size_t size_when_serialized_PacketWithSize(PacketWithSize obj) {
-        size_t total = 0;
-            { auto size_fn = [=](const std::vector<char>& vec) -> size_t {
-            size_t total_size = sizeof(size_t); // space for storing count
-            if (!vec.empty()) {
-                total_size += vec.size() * [](const char &v) { return sizeof(char); }(vec[0]);
-            }
-            return total_size;
-        };
-              total += sizeof(size_t); // length prefix
-              total += size_fn(obj.data); }
-            { auto size_fn = [](const size_t &v) { return sizeof(size_t); };
-              total += size_fn(obj.size); }
-            return total;
-
-    }
-    PacketWithSize deserialize_PacketWithSize(std::vector<uint8_t> &buffer) {
-        PacketWithSize obj;
-            size_t offset = 0;
-            { auto deser = [=](const std::vector<uint8_t>& buffer) -> std::vector<char> {
-            std::vector<char> result;
-            if (buffer.size() < sizeof(size_t)) return result;
-            size_t count;
-            std::memcpy(&count, buffer.data(), sizeof(size_t));
+        val = meta_fs_utils.invoker_that_returns_bool(invocation);
+        if (val)
+            return val;
         
-            size_t offset = sizeof(size_t);
-            auto element_deserializer = [](const std::vector<uint8_t> &buf) {   char v;   std::memcpy(&v, buf.data(), sizeof(char));   return v; };
-            size_t elem_size = sizeof(char);
-            if (offset + count * elem_size > buffer.size()) return result; // safety check
-            for (size_t i = 0; i < count; ++i) {
-                std::vector<uint8_t> elem_buf(buffer.begin() + offset, buffer.begin() + offset + elem_size);
-                char elem = element_deserializer(elem_buf);
-                result.push_back(elem);
-                offset += elem_size;
-            }
-            return result;
-        };
-              if (offset + sizeof(size_t) > buffer.size()) return obj;
-              size_t len = 0;
-              std::memcpy(&len, buffer.data() + offset, sizeof(size_t));
-              offset += sizeof(size_t);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.data = deser(slice);
-              offset += len;
-            }
-            { auto deser = [](const std::vector<uint8_t> &buf) {   size_t v;   std::memcpy(&v, buf.data(), sizeof(size_t));   return v; };
-              auto size_fn = [](const size_t &v) { return sizeof(size_t); };
-              size_t len = size_fn(obj.size);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.size = deser(slice);
-              offset += len;
-            }
-            return obj;
+        return std::nullopt;
 
     }
-    std::string UniqueClientIDPacket_to_string(UniqueClientIDPacket obj) {
-        std::ostringstream oss;
-            oss << "{";
-            { auto conv = [=](const PacketHeader& obj) -> std::string {
-            std::ostringstream oss;
-            oss << "{";
-            { auto conv = [=](PacketType value) -> std::string {
-            switch(value) {
-                case PacketType::UNIQUE_CLIENT_ID: return "PacketType::UNIQUE_CLIENT_ID";
-                case PacketType::GAME_UPDATE_POSITIONS: return "PacketType::GAME_UPDATE_POSITIONS";
-                case PacketType::GAME_UPDATE_ONE_TIME_EVENTS: return "PacketType::GAME_UPDATE_ONE_TIME_EVENTS";
-                case PacketType::KEYBOARD_MOUSE_UPDATE: return "PacketType::KEYBOARD_MOUSE_UPDATE";
-                default: return "<unknown PacketType>";
-            }
-        };
-              oss << "type=" << conv(obj.type); }
-            oss << ", ";
-            { auto conv = [](const uint32_t &v) { return std::to_string(v); };
-              oss << "size_of_data_without_header=" << conv(obj.size_of_data_without_header); }
-            oss << "}";
-            return oss.str();
-        };
-              oss << "header=" << conv(obj.header); }
-            oss << ", ";
-            { auto conv = [](const unsigned int &v) { return std::to_string(v); };
-              oss << "id=" << conv(obj.id); }
-            oss << ", ";
-            { auto conv = [](const unsigned int &v) { return std::to_string(v); };
-              oss << "client_id=" << conv(obj.client_id); }
-            oss << "}";
-            return oss.str();
-
-    }
-    UniqueClientIDPacket string_to_UniqueClientIDPacket(std::string &s) {
-        UniqueClientIDPacket obj;
-            std::string trimmed = s.substr(1, s.size() - 2); // remove {}
-            std::istringstream iss(trimmed);
-            std::string token;
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [=](const std::string &s) -> PacketHeader {
-            PacketHeader obj;
-            std::string trimmed = s.substr(1, s.size() - 2); // remove {}
-            std::istringstream iss(trimmed);
-            std::string token;
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [=](const std::string &s) -> PacketType {
-            if (s == "PacketType::UNIQUE_CLIENT_ID") return PacketType::UNIQUE_CLIENT_ID;
-            if (s == "PacketType::GAME_UPDATE_POSITIONS") return PacketType::GAME_UPDATE_POSITIONS;
-            if (s == "PacketType::GAME_UPDATE_ONE_TIME_EVENTS") return PacketType::GAME_UPDATE_ONE_TIME_EVENTS;
-            if (s == "PacketType::KEYBOARD_MOUSE_UPDATE") return PacketType::KEYBOARD_MOUSE_UPDATE;
-            return static_cast<PacketType>(0); // default fallback
-        };
-                    obj.type = conv(value_str);
-                }
-            }
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [](const std::string &s) { return static_cast<uint32_t>(std::stoul(s)); };
-                    obj.size_of_data_without_header = conv(value_str);
-                }
-            }
-            return obj;
-        };
-                    obj.header = conv(value_str);
-                }
-            }
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [](const std::string &s) { return static_cast<unsigned int>(std::stoul(s)); };
-                    obj.id = conv(value_str);
-                }
-            }
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [](const std::string &s) { return static_cast<unsigned int>(std::stoul(s)); };
-                    obj.client_id = conv(value_str);
-                }
-            }
-            return obj;
-
-    }
-    std::vector<uint8_t> serialize_UniqueClientIDPacket(UniqueClientIDPacket obj) {
-        std::vector<uint8_t> buffer;
-            { auto ser = [=](const PacketHeader& obj) -> std::vector<uint8_t> {
-            std::vector<uint8_t> buffer;
-            { auto ser = [=](PacketType value) -> std::vector<uint8_t> {
-            std::vector<uint8_t> buffer(sizeof(uint8_t));
-            uint8_t raw = static_cast<uint8_t>(value);
-            std::memcpy(buffer.data(), &raw, sizeof(uint8_t));
-            return buffer;
-        };
-              auto bytes = ser(obj.type);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            { auto ser = [](const uint32_t &v) {   std::vector<uint8_t> buf(sizeof(uint32_t));   std::memcpy(buf.data(), &v, sizeof(uint32_t));   return buf; };
-              auto bytes = ser(obj.size_of_data_without_header);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            return buffer;
-        };
-              auto bytes = ser(obj.header);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            { auto ser = [](const unsigned int &v) {   std::vector<uint8_t> buf(sizeof(unsigned int));   std::memcpy(buf.data(), &v, sizeof(unsigned int));   return buf; };
-              auto bytes = ser(obj.id);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            { auto ser = [](const unsigned int &v) {   std::vector<uint8_t> buf(sizeof(unsigned int));   std::memcpy(buf.data(), &v, sizeof(unsigned int));   return buf; };
-              auto bytes = ser(obj.client_id);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            return buffer;
-
-    }
-    size_t size_when_serialized_UniqueClientIDPacket(UniqueClientIDPacket obj) {
-        size_t total = 0;
-            { auto size_fn = [=](const PacketHeader& obj) -> size_t {
-            size_t total = 0;
-            { auto size_fn = [=](const PacketType &obj) -> size_t {
-            return sizeof(uint8_t);
-        };
-              total += size_fn(obj.type); }
-            { auto size_fn = [](const uint32_t &v) { return sizeof(uint32_t); };
-              total += size_fn(obj.size_of_data_without_header); }
-            return total;
-        };
-              total += size_fn(obj.header); }
-            { auto size_fn = [](const unsigned int &v) { return sizeof(unsigned int); };
-              total += size_fn(obj.id); }
-            { auto size_fn = [](const unsigned int &v) { return sizeof(unsigned int); };
-              total += size_fn(obj.client_id); }
-            return total;
-
-    }
-    UniqueClientIDPacket deserialize_UniqueClientIDPacket(std::vector<uint8_t> &buffer) {
-        UniqueClientIDPacket obj;
-            size_t offset = 0;
-            { auto deser = [=](const std::vector<uint8_t> &buffer) -> PacketHeader {
-            PacketHeader obj;
-            size_t offset = 0;
-            { auto deser = [=](const std::vector<uint8_t> &buffer) -> PacketType {
-            if (buffer.size() < sizeof(uint8_t)) return static_cast<PacketType>(0);
-            uint8_t raw = 0;
-            std::memcpy(&raw, buffer.data(), sizeof(uint8_t));
-            return static_cast<PacketType>(raw);
-        };
-              auto size_fn = [=](const PacketType &obj) -> size_t {
-            return sizeof(uint8_t);
-        };
-              size_t len = size_fn(obj.type);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.type = deser(slice);
-              offset += len;
-            }
-            { auto deser = [](const std::vector<uint8_t> &buf) {   uint32_t v;   std::memcpy(&v, buf.data(), sizeof(uint32_t));   return v; };
-              auto size_fn = [](const uint32_t &v) { return sizeof(uint32_t); };
-              size_t len = size_fn(obj.size_of_data_without_header);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.size_of_data_without_header = deser(slice);
-              offset += len;
-            }
-            return obj;
-        };
-              auto size_fn = [=](const PacketHeader& obj) -> size_t {
-            size_t total = 0;
-            { auto size_fn = [=](const PacketType &obj) -> size_t {
-            return sizeof(uint8_t);
-        };
-              total += size_fn(obj.type); }
-            { auto size_fn = [](const uint32_t &v) { return sizeof(uint32_t); };
-              total += size_fn(obj.size_of_data_without_header); }
-            return total;
-        };
-              size_t len = size_fn(obj.header);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.header = deser(slice);
-              offset += len;
-            }
-            { auto deser = [](const std::vector<uint8_t> &buf) {   unsigned int v;   std::memcpy(&v, buf.data(), sizeof(unsigned int));   return v; };
-              auto size_fn = [](const unsigned int &v) { return sizeof(unsigned int); };
-              size_t len = size_fn(obj.id);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.id = deser(slice);
-              offset += len;
-            }
-            { auto deser = [](const std::vector<uint8_t> &buf) {   unsigned int v;   std::memcpy(&v, buf.data(), sizeof(unsigned int));   return v; };
-              auto size_fn = [](const unsigned int &v) { return sizeof(unsigned int); };
-              size_t len = size_fn(obj.client_id);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.client_id = deser(slice);
-              offset += len;
-            }
-            return obj;
-
-    }
-    std::string PositionArray_to_string(std::array<float, 3> arr) {
-        std::ostringstream oss;
-            oss << "{";
-            auto conversion = [](const float &v) { return std::to_string(v); };
+    std::optional<std::vector<std::string>> invoker_that_returns_std_vector_std_string_(std::string &invocation) {
+        std::optional<std::vector<std::string>> val;
+        val = meta_text_utils.invoker_that_returns_std_vector_std_string_(invocation);
+        if (val)
+            return val;
         
-            for (size_t i = 0; i < arr.size(); ++i) {
-                oss << conversion(arr[i]);
-                if (i + 1 < arr.size())
-                    oss << ", ";
-            }
+        return std::nullopt;
+
+    }
+    std::optional<std::function<std::filesystem::path()>> deferred_invoker_that_returns_std_filesystem_path(std::string &invocation) {
+        std::optional<std::function<std::filesystem::path()>> val;
+        val = meta_fs_utils.deferred_invoker_that_returns_std_filesystem_path(invocation);
+        if (val)
+            return val;
         
-            oss << "}";
-            return oss.str();
+        return std::nullopt;
 
     }
-    std::array<float, 3> string_to_PositionArray(std::string &input) {
-        std::string trimmed = input;
-            if (!trimmed.empty() && trimmed.front() == '{' && trimmed.back() == '}') {
-                trimmed = trimmed.substr(1, trimmed.size() - 2);
-            }
+    std::optional<std::function<std::vector<std::filesystem::path>()>> deferred_invoker_that_returns_std_vector_std_filesystem_path_(std::string &invocation) {
+        std::optional<std::function<std::vector<std::filesystem::path>()>> val;
+        val = meta_fs_utils.deferred_invoker_that_returns_std_vector_std_filesystem_path_(invocation);
+        if (val)
+            return val;
         
-            std::array<float, 3> result{};
-            std::regex element_re(R"(-?\d+(?:\.\d+)?)");
-            auto begin = std::sregex_iterator(trimmed.begin(), trimmed.end(), element_re);
-            auto end = std::sregex_iterator();
+        return std::nullopt;
+
+    }
+    std::optional<std::function<bool()>> deferred_invoker_that_returns_bool(std::string &invocation) {
+        std::optional<std::function<bool()>> val;
+        val = meta_text_utils.deferred_invoker_that_returns_bool(invocation);
+        if (val)
+            return val;
         
-            size_t idx = 0;
-            for (auto it = begin; it != end && idx < 3; ++it, ++idx) {
-                try {
-                    auto conversion = [](const std::string &s) { return std::stof(s); };
-                    result[idx] = conversion(it->str());
-                } catch (...) {
-                    // Ignore malformed elements
-                }
-            }
-            return result;
-
-    }
-    std::vector<uint8_t> serialize_PositionArray(std::array<float, 3> arr) {
-        std::vector<uint8_t> buffer;
-            auto element_serializer = [](const float &v) {   std::vector<uint8_t> buf(sizeof(float));   std::memcpy(buf.data(), &v, sizeof(float));   return buf; };
-            if (!arr.empty()) {
-                size_t elem_size = sizeof(float);
-                buffer.resize(buffer.size() + arr.size() * elem_size);
-                std::memcpy(buffer.data(), arr.data(), arr.size() * elem_size);
-            }
-            return buffer;
-
-    }
-    size_t size_when_serialized_PositionArray(std::array<float, 3> arr) {
-        size_t total_size = 0;
-            if (!arr.empty()) {
-                total_size += arr.size() * [](const float &v) { return sizeof(float); }(arr[0]);
-            }
-            return total_size;
-
-    }
-    std::array<float, 3> deserialize_PositionArray(std::vector<uint8_t> buffer) {
-        std::array<float, 3> result{};
-            auto element_deserializer = [](const std::vector<uint8_t> &buf) {   float v;   std::memcpy(&v, buf.data(), sizeof(float));   return v; };
+        val = meta_fs_utils.deferred_invoker_that_returns_bool(invocation);
+        if (val)
+            return val;
         
-            size_t offset = 0;
-            size_t elem_size = sizeof(float);
-            if (buffer.size() < 3 * elem_size) return result;
-            for (size_t i = 0; i < 3; ++i) {
-                std::vector<uint8_t> elem_buf(buffer.begin() + offset, buffer.begin() + offset + elem_size);
-                result[i] = element_deserializer(elem_buf);
-                offset += elem_size;
-            }
-            return result;
+        return std::nullopt;
 
     }
-    std::string GameUpdatePositionsPacket_to_string(GameUpdatePositionsPacket obj) {
-        std::ostringstream oss;
-            oss << "{";
-            { auto conv = [=](const PacketHeader& obj) -> std::string {
-            std::ostringstream oss;
-            oss << "{";
-            { auto conv = [=](PacketType value) -> std::string {
-            switch(value) {
-                case PacketType::UNIQUE_CLIENT_ID: return "PacketType::UNIQUE_CLIENT_ID";
-                case PacketType::GAME_UPDATE_POSITIONS: return "PacketType::GAME_UPDATE_POSITIONS";
-                case PacketType::GAME_UPDATE_ONE_TIME_EVENTS: return "PacketType::GAME_UPDATE_ONE_TIME_EVENTS";
-                case PacketType::KEYBOARD_MOUSE_UPDATE: return "PacketType::KEYBOARD_MOUSE_UPDATE";
-                default: return "<unknown PacketType>";
-            }
-        };
-              oss << "type=" << conv(obj.type); }
-            oss << ", ";
-            { auto conv = [](const uint32_t &v) { return std::to_string(v); };
-              oss << "size_of_data_without_header=" << conv(obj.size_of_data_without_header); }
-            oss << "}";
-            return oss.str();
-        };
-              oss << "header=" << conv(obj.header); }
-            oss << ", ";
-            { auto conv = [](const unsigned int &v) { return std::to_string(v); };
-              oss << "id=" << conv(obj.id); }
-            oss << ", ";
-            { auto conv = [=](const std::vector<PositionArray>& vec) -> std::string {
-            std::ostringstream oss;
-            oss << "{";
-            auto conversion = [=](const std::array<float, 3>& arr) -> std::string {
-            std::ostringstream oss;
-            oss << "{";
-            auto conversion = [](const float &v) { return std::to_string(v); };
+    std::optional<std::function<std::vector<std::string>()>> deferred_invoker_that_returns_std_vector_std_string_(std::string &invocation) {
+        std::optional<std::function<std::vector<std::string>()>> val;
+        val = meta_text_utils.deferred_invoker_that_returns_std_vector_std_string_(invocation);
+        if (val)
+            return val;
         
-            for (size_t i = 0; i < arr.size(); ++i) {
-                oss << conversion(arr[i]);
-                if (i + 1 < arr.size())
-                    oss << ", ";
-            }
-        
-            oss << "}";
-            return oss.str();
-        };
-        
-            for (size_t i = 0; i < vec.size(); ++i) {
-                oss << conversion(vec[i]);
-                if (i + 1 < vec.size())
-                    oss << ", ";
-            }
-        
-            oss << "}";
-            return oss.str();
-        };
-              oss << "positions=" << conv(obj.positions); }
-            oss << "}";
-            return oss.str();
+        return std::nullopt;
 
     }
-    GameUpdatePositionsPacket string_to_GameUpdatePositionsPacket(std::string &s) {
-        GameUpdatePositionsPacket obj;
-            std::string trimmed = s.substr(1, s.size() - 2); // remove {}
-            std::istringstream iss(trimmed);
-            std::string token;
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [=](const std::string &s) -> PacketHeader {
-            PacketHeader obj;
-            std::string trimmed = s.substr(1, s.size() - 2); // remove {}
-            std::istringstream iss(trimmed);
-            std::string token;
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [=](const std::string &s) -> PacketType {
-            if (s == "PacketType::UNIQUE_CLIENT_ID") return PacketType::UNIQUE_CLIENT_ID;
-            if (s == "PacketType::GAME_UPDATE_POSITIONS") return PacketType::GAME_UPDATE_POSITIONS;
-            if (s == "PacketType::GAME_UPDATE_ONE_TIME_EVENTS") return PacketType::GAME_UPDATE_ONE_TIME_EVENTS;
-            if (s == "PacketType::KEYBOARD_MOUSE_UPDATE") return PacketType::KEYBOARD_MOUSE_UPDATE;
-            return static_cast<PacketType>(0); // default fallback
-        };
-                    obj.type = conv(value_str);
+    void start_interactive_invoker() {
+        std::map<std::string, meta_utils::MetaFunctionSignature> options_dict;
+            for (size_t i = 0; i < meta_text_utils.all_meta_function_signatures.size(); ++i) {
+            options_dict[std::to_string(i + 1)] = meta_text_utils.all_meta_function_signatures[i];
+        }
+        if (options_dict.empty()) {
+            std::cout << "No functions available." << std::endl;
+            return; // nothing to do
+        }
+        std::vector<std::pair<std::string, meta_utils::MetaFunctionSignature>> sorted_options(options_dict.begin(), options_dict.end());
+        std::sort(sorted_options.begin(), sorted_options.end(), [](const auto &a, const auto &b) { return std::stoi(a.first) < std::stoi(b.first); });
+        bool keep_running = true;
+        while (keep_running) {
+            std::cout << "Select a function to invoke:" << std::endl;;
+            for (const auto &[key, func] : sorted_options) {
+                std::cout << key << ". " << func.to_string() << std::endl;
+            }
+            std::cout << "q. Quit" << std::endl;
+            std::string choice = get_validated_input( []() {
+                std::cout << "Enter choice: ";
+                std::string s;
+                std::getline(std::cin, s);
+                return text_utils::trim(s);
+            },
+            [&](const std::string &input) { return input == "q" || options_dict.find(input) != options_dict.end(); }, "Invalid choice. Please try again.");
+            if (choice == "q") {
+                std::cout << "Goodbye." << std::endl;
+                break;
+        }
+            meta_utils::MetaFunctionSignature selected = options_dict[choice];
+            std::vector<std::string> args;
+            for (const auto &param : selected.parameters) {
+                std::string val = get_input_with_default("Enter value for " + param.name + " (" + param.type.get_type_name() + ")", "0");
+                args.push_back(val);
+            }
+            std::string invocation = selected.name + "(";
+            for (size_t i = 0; i < args.size(); ++i) {
+                invocation += args[i];
+                if (i < args.size() - 1) {
+                    invocation += ", ";
                 }
             }
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [](const std::string &s) { return static_cast<uint32_t>(std::stoul(s)); };
-                    obj.size_of_data_without_header = conv(value_str);
-                }
+            invocation += ")";
+            std::cout << "about to run: " << invocation << std::endl;
+            auto result = invoker_that_returns_std_string(invocation);
+            if (result.has_value()) {
+                std::cout << "Result: " << result.value() << std::endl;
+            } else {
+                std::cout << "Invocation failed." << std::endl;
             }
-            return obj;
-        };
-                    obj.header = conv(value_str);
-                }
+            std::string run_again = get_validated_input(
+            []() {
+                std::cout << "Do you want to run another function? (y/n): ";
+                std::string s;
+                std::getline(std::cin, s);
+                return text_utils::trim(s);
+            },
+            [](const std::string &input) { return input == "y" || input == "n"; }, "Please enter 'y' or 'n'.");
+            if (run_again == "n") {
+                keep_running = false;
+                std::cout << "Goodbye." << std::endl;
             }
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [](const std::string &s) { return static_cast<unsigned int>(std::stoul(s)); };
-                    obj.id = conv(value_str);
-                }
-            }
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [=](const std::string &input) -> std::vector<PositionArray> {
-            std::string trimmed = input;
-            if (!trimmed.empty() && trimmed.front() == '{' && trimmed.back() == '}') {
-                trimmed = trimmed.substr(1, trimmed.size() - 2);
-            }
-        
-            std::vector<PositionArray> result;
-            std::regex element_re(R"(.*)");
-            auto begin = std::sregex_iterator(trimmed.begin(), trimmed.end(), element_re);
-            auto end = std::sregex_iterator();
-        
-            for (auto it = begin; it != end; ++it) {
-                try {
-                    auto conversion = [=](const std::string &input) -> std::array<float, 3> {
-            std::string trimmed = input;
-            if (!trimmed.empty() && trimmed.front() == '{' && trimmed.back() == '}') {
-                trimmed = trimmed.substr(1, trimmed.size() - 2);
-            }
-        
-            std::array<float, 3> result{};
-            std::regex element_re(R"(-?\d+(?:\.\d+)?)");
-            auto begin = std::sregex_iterator(trimmed.begin(), trimmed.end(), element_re);
-            auto end = std::sregex_iterator();
-        
-            size_t idx = 0;
-            for (auto it = begin; it != end && idx < 3; ++it, ++idx) {
-                try {
-                    auto conversion = [](const std::string &s) { return std::stof(s); };
-                    result[idx] = conversion(it->str());
-                } catch (...) {
-                    // Ignore malformed elements
-                }
-            }
-            return result;
-        };
-                    result.push_back(conversion(it->str()));
-                } catch (...) {
-                    // Ignore malformed elements
-                }
-            }
-            return result;
-        };
-                    obj.positions = conv(value_str);
-                }
-            }
-            return obj;
+        }
 
     }
-    std::vector<uint8_t> serialize_GameUpdatePositionsPacket(GameUpdatePositionsPacket obj) {
-        std::vector<uint8_t> buffer;
-            { auto ser = [=](const PacketHeader& obj) -> std::vector<uint8_t> {
-            std::vector<uint8_t> buffer;
-            { auto ser = [=](PacketType value) -> std::vector<uint8_t> {
-            std::vector<uint8_t> buffer(sizeof(uint8_t));
-            uint8_t raw = static_cast<uint8_t>(value);
-            std::memcpy(buffer.data(), &raw, sizeof(uint8_t));
-            return buffer;
-        };
-              auto bytes = ser(obj.type);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            { auto ser = [](const uint32_t &v) {   std::vector<uint8_t> buf(sizeof(uint32_t));   std::memcpy(buf.data(), &v, sizeof(uint32_t));   return buf; };
-              auto bytes = ser(obj.size_of_data_without_header);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            return buffer;
-        };
-              auto bytes = ser(obj.header);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            { auto ser = [](const unsigned int &v) {   std::vector<uint8_t> buf(sizeof(unsigned int));   std::memcpy(buf.data(), &v, sizeof(unsigned int));   return buf; };
-              auto bytes = ser(obj.id);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            { auto ser = [=](const std::vector<PositionArray>& vec) -> std::vector<uint8_t> {
-            std::vector<uint8_t> buffer;
-            size_t count = vec.size();
-            buffer.resize(sizeof(size_t));
-            std::memcpy(buffer.data(), &count, sizeof(size_t));
-        
-            auto element_serializer = [=](const std::array<float, 3>& arr) -> std::vector<uint8_t> {
-            std::vector<uint8_t> buffer;
-            auto element_serializer = [](const float &v) {   std::vector<uint8_t> buf(sizeof(float));   std::memcpy(buf.data(), &v, sizeof(float));   return buf; };
-            if (!arr.empty()) {
-                size_t elem_size = sizeof(float);
-                buffer.resize(buffer.size() + arr.size() * elem_size);
-                std::memcpy(buffer.data(), arr.data(), arr.size() * elem_size);
+    void list_all_available_functions() {
+        std::cout << "--- Functions in namespace: meta_text_utils ---" << std::endl;
+            for (const auto &mfs : meta_text_utils.all_meta_function_signatures) {
+                std::cout << mfs.to_string() << std::endl;
             }
-            return buffer;
-        };
-            if (!vec.empty()) {
-                size_t elem_size = sizeof(PositionArray);
-                buffer.resize(buffer.size() + vec.size() * elem_size);
-                std::memcpy(buffer.data() + sizeof(size_t), vec.data(), vec.size() * elem_size);
+            std::cout << "--- Functions in namespace: meta_fs_utils ---" << std::endl;
+            for (const auto &mfs : meta_fs_utils.all_meta_function_signatures) {
+                std::cout << mfs.to_string() << std::endl;
             }
-            return buffer;
-        };
-              auto bytes = ser(obj.positions);
-              size_t len = bytes.size();
-              buffer.resize(buffer.size() + sizeof(size_t));
-              std::memcpy(buffer.data() + buffer.size() - sizeof(size_t), &len, sizeof(size_t));
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            return buffer;
-
-    }
-    size_t size_when_serialized_GameUpdatePositionsPacket(GameUpdatePositionsPacket obj) {
-        size_t total = 0;
-            { auto size_fn = [=](const PacketHeader& obj) -> size_t {
-            size_t total = 0;
-            { auto size_fn = [=](const PacketType &obj) -> size_t {
-            return sizeof(uint8_t);
-        };
-              total += size_fn(obj.type); }
-            { auto size_fn = [](const uint32_t &v) { return sizeof(uint32_t); };
-              total += size_fn(obj.size_of_data_without_header); }
-            return total;
-        };
-              total += size_fn(obj.header); }
-            { auto size_fn = [](const unsigned int &v) { return sizeof(unsigned int); };
-              total += size_fn(obj.id); }
-            { auto size_fn = [=](const std::vector<PositionArray>& vec) -> size_t {
-            size_t total_size = sizeof(size_t); // space for storing count
-            if (!vec.empty()) {
-                total_size += vec.size() * [=](const std::array<float, 3>& arr) -> size_t {
-            size_t total_size = 0;
-            if (!arr.empty()) {
-                total_size += arr.size() * [](const float &v) { return sizeof(float); }(arr[0]);
-            }
-            return total_size;
-        }(vec[0]);
-            }
-            return total_size;
-        };
-              total += sizeof(size_t); // length prefix
-              total += size_fn(obj.positions); }
-            return total;
-
-    }
-    GameUpdatePositionsPacket deserialize_GameUpdatePositionsPacket(std::vector<uint8_t> &buffer) {
-        GameUpdatePositionsPacket obj;
-            size_t offset = 0;
-            { auto deser = [=](const std::vector<uint8_t> &buffer) -> PacketHeader {
-            PacketHeader obj;
-            size_t offset = 0;
-            { auto deser = [=](const std::vector<uint8_t> &buffer) -> PacketType {
-            if (buffer.size() < sizeof(uint8_t)) return static_cast<PacketType>(0);
-            uint8_t raw = 0;
-            std::memcpy(&raw, buffer.data(), sizeof(uint8_t));
-            return static_cast<PacketType>(raw);
-        };
-              auto size_fn = [=](const PacketType &obj) -> size_t {
-            return sizeof(uint8_t);
-        };
-              size_t len = size_fn(obj.type);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.type = deser(slice);
-              offset += len;
-            }
-            { auto deser = [](const std::vector<uint8_t> &buf) {   uint32_t v;   std::memcpy(&v, buf.data(), sizeof(uint32_t));   return v; };
-              auto size_fn = [](const uint32_t &v) { return sizeof(uint32_t); };
-              size_t len = size_fn(obj.size_of_data_without_header);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.size_of_data_without_header = deser(slice);
-              offset += len;
-            }
-            return obj;
-        };
-              auto size_fn = [=](const PacketHeader& obj) -> size_t {
-            size_t total = 0;
-            { auto size_fn = [=](const PacketType &obj) -> size_t {
-            return sizeof(uint8_t);
-        };
-              total += size_fn(obj.type); }
-            { auto size_fn = [](const uint32_t &v) { return sizeof(uint32_t); };
-              total += size_fn(obj.size_of_data_without_header); }
-            return total;
-        };
-              size_t len = size_fn(obj.header);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.header = deser(slice);
-              offset += len;
-            }
-            { auto deser = [](const std::vector<uint8_t> &buf) {   unsigned int v;   std::memcpy(&v, buf.data(), sizeof(unsigned int));   return v; };
-              auto size_fn = [](const unsigned int &v) { return sizeof(unsigned int); };
-              size_t len = size_fn(obj.id);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.id = deser(slice);
-              offset += len;
-            }
-            { auto deser = [=](const std::vector<uint8_t>& buffer) -> std::vector<PositionArray> {
-            std::vector<PositionArray> result;
-            if (buffer.size() < sizeof(size_t)) return result;
-            size_t count;
-            std::memcpy(&count, buffer.data(), sizeof(size_t));
-        
-            size_t offset = sizeof(size_t);
-            auto element_deserializer = [=](const std::vector<uint8_t>& buffer) -> std::array<float, 3> {
-            std::array<float, 3> result{};
-            auto element_deserializer = [](const std::vector<uint8_t> &buf) {   float v;   std::memcpy(&v, buf.data(), sizeof(float));   return v; };
-        
-            size_t offset = 0;
-            size_t elem_size = sizeof(float);
-            if (buffer.size() < 3 * elem_size) return result;
-            for (size_t i = 0; i < 3; ++i) {
-                std::vector<uint8_t> elem_buf(buffer.begin() + offset, buffer.begin() + offset + elem_size);
-                result[i] = element_deserializer(elem_buf);
-                offset += elem_size;
-            }
-            return result;
-        };
-            size_t elem_size = sizeof(PositionArray);
-            if (offset + count * elem_size > buffer.size()) return result; // safety check
-            for (size_t i = 0; i < count; ++i) {
-                std::vector<uint8_t> elem_buf(buffer.begin() + offset, buffer.begin() + offset + elem_size);
-                PositionArray elem = element_deserializer(elem_buf);
-                result.push_back(elem);
-                offset += elem_size;
-            }
-            return result;
-        };
-              if (offset + sizeof(size_t) > buffer.size()) return obj;
-              size_t len = 0;
-              std::memcpy(&len, buffer.data() + offset, sizeof(size_t));
-              offset += sizeof(size_t);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.positions = deser(slice);
-              offset += len;
-            }
-            return obj;
-
-    }
-    std::string MouseKeyboardUpdate_to_string(MouseKeyboardUpdate obj) {
-        std::ostringstream oss;
-            oss << "{";
-            { auto conv = [](const bool &v) { return std::to_string(v); };
-              oss << "fire_pressed=" << conv(obj.fire_pressed); }
-            oss << ", ";
-            { auto conv = [](const bool &v) { return std::to_string(v); };
-              oss << "forward_pressed=" << conv(obj.forward_pressed); }
-            oss << "}";
-            return oss.str();
-
-    }
-    MouseKeyboardUpdate string_to_MouseKeyboardUpdate(std::string &s) {
-        MouseKeyboardUpdate obj;
-            std::string trimmed = s.substr(1, s.size() - 2); // remove {}
-            std::istringstream iss(trimmed);
-            std::string token;
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [](const std::string &s) { return s == "true" || s == "1"; };
-                    obj.fire_pressed = conv(value_str);
-                }
-            }
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [](const std::string &s) { return s == "true" || s == "1"; };
-                    obj.forward_pressed = conv(value_str);
-                }
-            }
-            return obj;
-
-    }
-    std::vector<uint8_t> serialize_MouseKeyboardUpdate(MouseKeyboardUpdate obj) {
-        std::vector<uint8_t> buffer;
-            { auto ser = [](const bool &v) {   std::vector<uint8_t> buf(1);   buf[0] = v ? 1 : 0;   return buf; };
-              auto bytes = ser(obj.fire_pressed);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            { auto ser = [](const bool &v) {   std::vector<uint8_t> buf(1);   buf[0] = v ? 1 : 0;   return buf; };
-              auto bytes = ser(obj.forward_pressed);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            return buffer;
-
-    }
-    size_t size_when_serialized_MouseKeyboardUpdate(MouseKeyboardUpdate obj) {
-        size_t total = 0;
-            { auto size_fn = [](const bool &v) { return sizeof(uint8_t); };
-              total += size_fn(obj.fire_pressed); }
-            { auto size_fn = [](const bool &v) { return sizeof(uint8_t); };
-              total += size_fn(obj.forward_pressed); }
-            return total;
-
-    }
-    MouseKeyboardUpdate deserialize_MouseKeyboardUpdate(std::vector<uint8_t> &buffer) {
-        MouseKeyboardUpdate obj;
-            size_t offset = 0;
-            { auto deser = [](const std::vector<uint8_t> &buf) {   return buf[0] != 0; };
-              auto size_fn = [](const bool &v) { return sizeof(uint8_t); };
-              size_t len = size_fn(obj.fire_pressed);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.fire_pressed = deser(slice);
-              offset += len;
-            }
-            { auto deser = [](const std::vector<uint8_t> &buf) {   return buf[0] != 0; };
-              auto size_fn = [](const bool &v) { return sizeof(uint8_t); };
-              size_t len = size_fn(obj.forward_pressed);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.forward_pressed = deser(slice);
-              offset += len;
-            }
-            return obj;
-
-    }
-    std::string MouseKeyboardUpdatePacket_to_string(MouseKeyboardUpdatePacket obj) {
-        std::ostringstream oss;
-            oss << "{";
-            { auto conv = [=](const PacketHeader& obj) -> std::string {
-            std::ostringstream oss;
-            oss << "{";
-            { auto conv = [=](PacketType value) -> std::string {
-            switch(value) {
-                case PacketType::UNIQUE_CLIENT_ID: return "PacketType::UNIQUE_CLIENT_ID";
-                case PacketType::GAME_UPDATE_POSITIONS: return "PacketType::GAME_UPDATE_POSITIONS";
-                case PacketType::GAME_UPDATE_ONE_TIME_EVENTS: return "PacketType::GAME_UPDATE_ONE_TIME_EVENTS";
-                case PacketType::KEYBOARD_MOUSE_UPDATE: return "PacketType::KEYBOARD_MOUSE_UPDATE";
-                default: return "<unknown PacketType>";
-            }
-        };
-              oss << "type=" << conv(obj.type); }
-            oss << ", ";
-            { auto conv = [](const uint32_t &v) { return std::to_string(v); };
-              oss << "size_of_data_without_header=" << conv(obj.size_of_data_without_header); }
-            oss << "}";
-            return oss.str();
-        };
-              oss << "header=" << conv(obj.header); }
-            oss << ", ";
-            { auto conv = [](const unsigned int &v) { return std::to_string(v); };
-              oss << "id=" << conv(obj.id); }
-            oss << ", ";
-            { auto conv = [=](const MouseKeyboardUpdate& obj) -> std::string {
-            std::ostringstream oss;
-            oss << "{";
-            { auto conv = [](const bool &v) { return std::to_string(v); };
-              oss << "fire_pressed=" << conv(obj.fire_pressed); }
-            oss << ", ";
-            { auto conv = [](const bool &v) { return std::to_string(v); };
-              oss << "forward_pressed=" << conv(obj.forward_pressed); }
-            oss << "}";
-            return oss.str();
-        };
-              oss << "mku=" << conv(obj.mku); }
-            oss << "}";
-            return oss.str();
-
-    }
-    MouseKeyboardUpdatePacket string_to_MouseKeyboardUpdatePacket(std::string &s) {
-        MouseKeyboardUpdatePacket obj;
-            std::string trimmed = s.substr(1, s.size() - 2); // remove {}
-            std::istringstream iss(trimmed);
-            std::string token;
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [=](const std::string &s) -> PacketHeader {
-            PacketHeader obj;
-            std::string trimmed = s.substr(1, s.size() - 2); // remove {}
-            std::istringstream iss(trimmed);
-            std::string token;
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [=](const std::string &s) -> PacketType {
-            if (s == "PacketType::UNIQUE_CLIENT_ID") return PacketType::UNIQUE_CLIENT_ID;
-            if (s == "PacketType::GAME_UPDATE_POSITIONS") return PacketType::GAME_UPDATE_POSITIONS;
-            if (s == "PacketType::GAME_UPDATE_ONE_TIME_EVENTS") return PacketType::GAME_UPDATE_ONE_TIME_EVENTS;
-            if (s == "PacketType::KEYBOARD_MOUSE_UPDATE") return PacketType::KEYBOARD_MOUSE_UPDATE;
-            return static_cast<PacketType>(0); // default fallback
-        };
-                    obj.type = conv(value_str);
-                }
-            }
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [](const std::string &s) { return static_cast<uint32_t>(std::stoul(s)); };
-                    obj.size_of_data_without_header = conv(value_str);
-                }
-            }
-            return obj;
-        };
-                    obj.header = conv(value_str);
-                }
-            }
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [](const std::string &s) { return static_cast<unsigned int>(std::stoul(s)); };
-                    obj.id = conv(value_str);
-                }
-            }
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [=](const std::string &s) -> MouseKeyboardUpdate {
-            MouseKeyboardUpdate obj;
-            std::string trimmed = s.substr(1, s.size() - 2); // remove {}
-            std::istringstream iss(trimmed);
-            std::string token;
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [](const std::string &s) { return s == "true" || s == "1"; };
-                    obj.fire_pressed = conv(value_str);
-                }
-            }
-            if (std::getline(iss, token, ',')) {
-                auto pos = token.find('=');
-                if (pos != std::string::npos) {
-                    std::string value_str = token.substr(pos + 1);
-                    auto conv = [](const std::string &s) { return s == "true" || s == "1"; };
-                    obj.forward_pressed = conv(value_str);
-                }
-            }
-            return obj;
-        };
-                    obj.mku = conv(value_str);
-                }
-            }
-            return obj;
-
-    }
-    std::vector<uint8_t> serialize_MouseKeyboardUpdatePacket(MouseKeyboardUpdatePacket obj) {
-        std::vector<uint8_t> buffer;
-            { auto ser = [=](const PacketHeader& obj) -> std::vector<uint8_t> {
-            std::vector<uint8_t> buffer;
-            { auto ser = [=](PacketType value) -> std::vector<uint8_t> {
-            std::vector<uint8_t> buffer(sizeof(uint8_t));
-            uint8_t raw = static_cast<uint8_t>(value);
-            std::memcpy(buffer.data(), &raw, sizeof(uint8_t));
-            return buffer;
-        };
-              auto bytes = ser(obj.type);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            { auto ser = [](const uint32_t &v) {   std::vector<uint8_t> buf(sizeof(uint32_t));   std::memcpy(buf.data(), &v, sizeof(uint32_t));   return buf; };
-              auto bytes = ser(obj.size_of_data_without_header);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            return buffer;
-        };
-              auto bytes = ser(obj.header);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            { auto ser = [](const unsigned int &v) {   std::vector<uint8_t> buf(sizeof(unsigned int));   std::memcpy(buf.data(), &v, sizeof(unsigned int));   return buf; };
-              auto bytes = ser(obj.id);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            { auto ser = [=](const MouseKeyboardUpdate& obj) -> std::vector<uint8_t> {
-            std::vector<uint8_t> buffer;
-            { auto ser = [](const bool &v) {   std::vector<uint8_t> buf(1);   buf[0] = v ? 1 : 0;   return buf; };
-              auto bytes = ser(obj.fire_pressed);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            { auto ser = [](const bool &v) {   std::vector<uint8_t> buf(1);   buf[0] = v ? 1 : 0;   return buf; };
-              auto bytes = ser(obj.forward_pressed);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            return buffer;
-        };
-              auto bytes = ser(obj.mku);
-              buffer.insert(buffer.end(), bytes.begin(), bytes.end()); }
-            return buffer;
-
-    }
-    size_t size_when_serialized_MouseKeyboardUpdatePacket(MouseKeyboardUpdatePacket obj) {
-        size_t total = 0;
-            { auto size_fn = [=](const PacketHeader& obj) -> size_t {
-            size_t total = 0;
-            { auto size_fn = [=](const PacketType &obj) -> size_t {
-            return sizeof(uint8_t);
-        };
-              total += size_fn(obj.type); }
-            { auto size_fn = [](const uint32_t &v) { return sizeof(uint32_t); };
-              total += size_fn(obj.size_of_data_without_header); }
-            return total;
-        };
-              total += size_fn(obj.header); }
-            { auto size_fn = [](const unsigned int &v) { return sizeof(unsigned int); };
-              total += size_fn(obj.id); }
-            { auto size_fn = [=](const MouseKeyboardUpdate& obj) -> size_t {
-            size_t total = 0;
-            { auto size_fn = [](const bool &v) { return sizeof(uint8_t); };
-              total += size_fn(obj.fire_pressed); }
-            { auto size_fn = [](const bool &v) { return sizeof(uint8_t); };
-              total += size_fn(obj.forward_pressed); }
-            return total;
-        };
-              total += size_fn(obj.mku); }
-            return total;
-
-    }
-    MouseKeyboardUpdatePacket deserialize_MouseKeyboardUpdatePacket(std::vector<uint8_t> &buffer) {
-        MouseKeyboardUpdatePacket obj;
-            size_t offset = 0;
-            { auto deser = [=](const std::vector<uint8_t> &buffer) -> PacketHeader {
-            PacketHeader obj;
-            size_t offset = 0;
-            { auto deser = [=](const std::vector<uint8_t> &buffer) -> PacketType {
-            if (buffer.size() < sizeof(uint8_t)) return static_cast<PacketType>(0);
-            uint8_t raw = 0;
-            std::memcpy(&raw, buffer.data(), sizeof(uint8_t));
-            return static_cast<PacketType>(raw);
-        };
-              auto size_fn = [=](const PacketType &obj) -> size_t {
-            return sizeof(uint8_t);
-        };
-              size_t len = size_fn(obj.type);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.type = deser(slice);
-              offset += len;
-            }
-            { auto deser = [](const std::vector<uint8_t> &buf) {   uint32_t v;   std::memcpy(&v, buf.data(), sizeof(uint32_t));   return v; };
-              auto size_fn = [](const uint32_t &v) { return sizeof(uint32_t); };
-              size_t len = size_fn(obj.size_of_data_without_header);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.size_of_data_without_header = deser(slice);
-              offset += len;
-            }
-            return obj;
-        };
-              auto size_fn = [=](const PacketHeader& obj) -> size_t {
-            size_t total = 0;
-            { auto size_fn = [=](const PacketType &obj) -> size_t {
-            return sizeof(uint8_t);
-        };
-              total += size_fn(obj.type); }
-            { auto size_fn = [](const uint32_t &v) { return sizeof(uint32_t); };
-              total += size_fn(obj.size_of_data_without_header); }
-            return total;
-        };
-              size_t len = size_fn(obj.header);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.header = deser(slice);
-              offset += len;
-            }
-            { auto deser = [](const std::vector<uint8_t> &buf) {   unsigned int v;   std::memcpy(&v, buf.data(), sizeof(unsigned int));   return v; };
-              auto size_fn = [](const unsigned int &v) { return sizeof(unsigned int); };
-              size_t len = size_fn(obj.id);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.id = deser(slice);
-              offset += len;
-            }
-            { auto deser = [=](const std::vector<uint8_t> &buffer) -> MouseKeyboardUpdate {
-            MouseKeyboardUpdate obj;
-            size_t offset = 0;
-            { auto deser = [](const std::vector<uint8_t> &buf) {   return buf[0] != 0; };
-              auto size_fn = [](const bool &v) { return sizeof(uint8_t); };
-              size_t len = size_fn(obj.fire_pressed);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.fire_pressed = deser(slice);
-              offset += len;
-            }
-            { auto deser = [](const std::vector<uint8_t> &buf) {   return buf[0] != 0; };
-              auto size_fn = [](const bool &v) { return sizeof(uint8_t); };
-              size_t len = size_fn(obj.forward_pressed);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.forward_pressed = deser(slice);
-              offset += len;
-            }
-            return obj;
-        };
-              auto size_fn = [=](const MouseKeyboardUpdate& obj) -> size_t {
-            size_t total = 0;
-            { auto size_fn = [](const bool &v) { return sizeof(uint8_t); };
-              total += size_fn(obj.fire_pressed); }
-            { auto size_fn = [](const bool &v) { return sizeof(uint8_t); };
-              total += size_fn(obj.forward_pressed); }
-            return total;
-        };
-              size_t len = size_fn(obj.mku);
-              if (offset + len > buffer.size()) return obj;
-              std::vector<uint8_t> slice(buffer.begin() + offset, buffer.begin() + offset + len);
-              obj.mku = deser(slice);
-              offset += len;
-            }
-            return obj;
 
     }
 };

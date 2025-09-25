@@ -1,4 +1,5 @@
 {
+  "ndc_units_per_second": 100,
   "build_direction": "up",
   "base_timeline_position_y": -0.75
 }

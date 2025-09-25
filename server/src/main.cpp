@@ -66,8 +66,7 @@ int main() {
 
         server.reliable_send(client_id, buffer.data(), buffer.size());
 
-        global_logger.info("just sent packet: {} with size in bytes: {}", mp.UniqueClientIDPacket_to_string(packet),
-                           buffer.size());
+        global_logger.info("just sent packet: {}", mp.UniqueClientIDPacket_to_string(packet));
         // server.reliable_send(client_id, &packet, sizeof(UniqueClientIDPacket));
     };
 
@@ -78,10 +77,10 @@ int main() {
     // std::function<void(const void *)>
     packet_handler.register_handler(PacketType::KEYBOARD_MOUSE_UPDATE, [&](std::vector<uint8_t> buffer) {
         MouseKeyboardUpdatePacket kmup = mp.deserialize_MouseKeyboardUpdatePacket(buffer);
-        global_logger.info("just received packet with id: {}", kmup.id);
-        global_logger.info(mp.MouseKeyboardUpdatePacket_to_string(kmup));
-        global_logger.info(
-            text_utils::format_nested_brace_string_recursive(mp.MouseKeyboardUpdatePacket_to_string(kmup)));
+        global_logger.info("just received packet: {}", mp.MouseKeyboardUpdatePacket_to_string(kmup));
+        // global_logger.info(mp.MouseKeyboardUpdatePacket_to_string(kmup));
+        // global_logger.info(
+        //     text_utils::format_nested_brace_string_recursive(mp.MouseKeyboardUpdatePacket_to_string(kmup)));
         // print_mkup(kmup);
     });
 
@@ -103,7 +102,7 @@ int main() {
         auto buffer = mp.serialize_GameUpdatePositionsPacket(packet);
 
         server.reliable_broadcast(buffer.data(), buffer.size());
-        global_logger.info("just sent packet with id: {} with size in bytes: {}", packet.id, buffer.size());
+        global_logger.info("just sent packet: {} ", mp.GameUpdatePositionsPacket_to_string(packet));
         ++num_broadcasts_made;
     };
 

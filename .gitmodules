@@ -88,3 +88,6 @@
 [submodule "server/src/utility/collection_utils"]
 	path = server/src/utility/collection_utils
 	url = git@github.com:cpp-toolbox/collection_utils.git
+[submodule "client/src/utility/user_input"]
+	path = client/src/utility/user_input
+	url = git@github.com:cpp-toolbox/user_input.git

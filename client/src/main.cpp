@@ -39,7 +39,6 @@ int main() {
 
     PacketHandler::HandlerFunction f = [&](std::vector<uint8_t> buffer) {
         UniqueClientIDPacket packet = mp.deserialize_UniqueClientIDPacket(buffer);
-        // global_logger.info("just received packet with id: {}", packet.id);
         global_logger.info("just received packet: {}", mp.UniqueClientIDPacket_to_string(packet));
     };
 
@@ -47,10 +46,8 @@ int main() {
 
     PacketHandler::HandlerFunction g = [&](std::vector<uint8_t> buffer) {
         GameUpdatePositionsPacket packet = mp.deserialize_GameUpdatePositionsPacket(buffer);
-        // global_logger.info("just received packet with id: {}", packet.id);
+
         global_logger.info("just received packet: {}", mp.GameUpdatePositionsPacket_to_string(packet));
-        // global_logger.info(
-        //     text_utils::format_nested_brace_string_recursive(mp.GameUpdatePositionsPacket_to_string(packet)));
     };
 
     packet_handler.register_handler(PacketType::GAME_UPDATE_POSITIONS, g);
@@ -77,10 +74,9 @@ int main() {
 
         auto buffer = mp.serialize_MouseKeyboardUpdatePacket(packet);
 
-        // network.send_packet(&packet, sizeof(MouseKeyboardUpdatePacket));
         network.send_packet(buffer.data(), buffer.size());
         global_logger.info("just sent packet : {}", mp.MouseKeyboardUpdatePacket_to_string(packet));
-        // global_logger.info(mp.MouseKeyboardUpdatePacket_to_string(packet));
+
         num_packets_sent += 1;
     };
 

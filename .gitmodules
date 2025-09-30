@@ -91,3 +91,6 @@
 [submodule "client/src/utility/user_input"]
 	path = client/src/utility/user_input
 	url = git@github.com:cpp-toolbox/user_input.git
+[submodule "server/src/utility/user_input"]
+	path = server/src/utility/user_input
+	url = git@github.com:cpp-toolbox/user_input.git

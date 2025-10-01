@@ -72,17 +72,10 @@ int main() {
     server.initialize_network();
 
     PacketHandler packet_handler;
-    // std::function<void(const void *)>
 
     packet_handler.register_handler(PacketType::KEYBOARD_MOUSE_UPDATE, [&](std::vector<uint8_t> buffer) {
         MouseKeyboardUpdatePacket kmup = mp.deserialize_MouseKeyboardUpdatePacket(buffer);
         global_logger.info("just received packet: {}", mp.MouseKeyboardUpdatePacket_to_string(kmup));
-
-        // global_logger.info(mp.MouseKeyboardUpdatePacket_to_string(kmup));
-
-        // global_logger.info(
-        //     text_utils::format_nested_brace_string_recursive(mp.MouseKeyboardUpdatePacket_to_string(kmup)));
-        // print_mkup(kmup);
     });
 
     FixedFrequencyLoop game;
